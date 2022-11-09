@@ -41,15 +41,24 @@ let wordsArrayPromise = new Promise(function(resolve, reject) {
             got(lotteryURL).then(response => {
                 // var wordArray = [];
 
-                const pattern = new RegExp('[0-9]+-');
-                const patternSec = new RegExp('[0-9]+/')
+                // const pattern = new RegExp('[0-9]+-');
+                // const patternSec = new RegExp('[0-9]+/');
+                const pattern = new RegExp('[0-9]+-', 'g');
+                const secondPattern = new RegExp('\\d+\\/\\d+', 'g');
                 const $ = cheerio.load(response.body);
 
+                // THIS CODE SUDDENLY STOPPED WORKING ON THE WEEK OF 10/24/22.
                 // response.body contained in $ is filtered by 'td' and converted to text. The numbers followed by - or / will be replaced so when the
                 // intArray is populated, those numbers are not included as lottery results.
-                $('td').each((index, element) => {
-                    wordArray.push($(element).text().replace(pattern, 'NaN').replace(patternSec, 'NaN'));
-                });
+                // $('td').each((index, element) => {
+                //     wordArray.push($(element).text().replace(pattern, 'NaN').replace(patternSec, 'NaN'));
+                // });
+
+                let text = $('body').text();
+                // filter text to replace all numbers followed by - or / with NaN.
+                let replacedText = text.replace(pattern, 'NaN').replace(secondPattern, 'NaN');
+                // Separates the text by words.
+                wordArray = replacedText.split(' ');
 
             }).catch(err => {
                 console.log(err);
@@ -75,15 +84,6 @@ let createResultsArray = function (arrayWithWords) {
                 numOfRows = intArray.length / numsPerPlay,
 
                 resultsArray = create2dArray(numOfRows, numsPerPlay, intArray),
-
-                fs.writeFile(
-                    "websiteDataFile.txt",
-                    resultsArray.map(function(v) {
-                        return v.join(', ')
-                    }).join('\n'), function (err) {
-                        console.log(err ? 'Error :' + err : 'File created')
-                    }
-                )
             );
         } else {
             reject("second promise did not work");
@@ -93,5 +93,16 @@ let createResultsArray = function (arrayWithWords) {
 
 wordsArrayPromise.then(() => {
     createResultsArray(wordArray);
-    console.log(resultsArray);
+    console.log(resultsArray.length);
+}).then(() => {
+    fs.writeFile(
+        "parserResults.txt",
+        resultsArray.map(function (v) {
+            return v.join(', ');
+        }).join('\n'),
+        function (err) {
+            console.log(err ? 'Error :' + err : 'testerResults file created')
+        }
+    );
 });
+
